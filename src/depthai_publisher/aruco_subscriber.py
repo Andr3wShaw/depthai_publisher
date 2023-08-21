@@ -10,8 +10,8 @@ import numpy as np
 
 
 class ArucoDetector():
-    aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_100)
-    aruco_params = cv2.aruco.DetectorParameters_create()
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_5X5_100)
+    aruco_params = cv2.aruco.DetectorParameters()
 
     frame_sub_topic = '/depthai_node/image/compressed'
 
