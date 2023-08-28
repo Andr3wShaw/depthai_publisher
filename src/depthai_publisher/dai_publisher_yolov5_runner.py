@@ -16,9 +16,10 @@ import json     # Yolo conf use json files
 import cv2
 import numpy as np
 import depthai as dai
-import rospy
+import rospy    
 from sensor_msgs.msg import CompressedImage, Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+from std_msgs.msg import String
 
 ############################### ############################### Parameters ###############################
 # Global variables to deal with pipeline creation
@@ -65,6 +66,8 @@ class DepthaiCamera():
     pub_topic_detect = '/depthai_node/detection/compressed'
     pub_topic_cam_inf = '/depthai_node/camera/camera_info'
 
+    
+
     def __init__(self):
         self.pipeline = dai.Pipeline()
 
@@ -80,6 +83,9 @@ class DepthaiCamera():
         self.pub_cam_inf = rospy.Publisher(self.pub_topic_cam_inf, CameraInfo, queue_size=10)
         # Create a timer for the callback
         self.timer = rospy.Timer(rospy.Duration(1.0 / 10), self.publish_camera_info, oneshot=False)
+
+        self.pub_label = rospy.Publisher('object_detection', String, queue_size=10)
+
 
         rospy.loginfo("Publishing images to rostopic: {}".format(self.pub_topic))
 
@@ -182,6 +188,7 @@ class DepthaiCamera():
                         # print("{},{},{},{},{},{},{}".format(detection.label,labels[detection.label],detection.confidence,detection.xmin, detection.ymin, detection.xmax, detection.ymax))
                         found_classes.append(detection.label)
                         # print(dai.ImgDetection.getData(detection))
+                        
                     found_classes = np.unique(found_classes)
                     # print(found_classes)
                     overlay = self.show_yolo(frame, detections)
@@ -233,6 +240,7 @@ class DepthaiCamera():
         msg_out.header.frame_id = "home"
         msg_out.data = np.array(cv2.imencode('.jpg', frame)[1]).tostring()
         self.pub_image_detect.publish(msg_out)
+
         
     ############################### ############################### Functions ###############################
     ######### Functions for Yolo Decoding
@@ -248,9 +256,13 @@ class DepthaiCamera():
         overlay =  frame.copy()
         for detection in detections:
             bbox = self.frameNorm(overlay, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+            label = labels[detection.label]
             cv2.putText(overlay, labels[detection.label], (bbox[0] + 10, bbox[1] + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(overlay, f"{int(detection.confidence * 100)}%", (bbox[0] + 10, bbox[1] + 40), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+
+            # Publish the detected label
+            self.pub_label.publish(label)
 
         return overlay
 
