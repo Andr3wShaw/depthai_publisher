@@ -263,6 +263,7 @@ class DepthaiCamera():
 
             # Publish the detected label
             self.pub_label.publish(label)
+            rospy.sleep(rospy.Duration(2))
 
         return overlay
 
