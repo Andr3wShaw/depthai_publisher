@@ -21,6 +21,7 @@ from sensor_msgs.msg import CompressedImage, Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String
 
+
 ############################### ############################### Parameters ###############################
 # Global variables to deal with pipeline creation
 pipeline = None
