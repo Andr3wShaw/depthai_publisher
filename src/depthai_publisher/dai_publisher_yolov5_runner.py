@@ -86,7 +86,8 @@ class DepthaiCamera():
         self.timer = rospy.Timer(rospy.Duration(1.0 / 10), self.publish_camera_info, oneshot=False)
 
         self.pub_label = rospy.Publisher('object_detection', String, queue_size=10)
-
+        self.person_detected = False
+        self.backpack_detected = False
 
         rospy.loginfo("Publishing images to rostopic: {}".format(self.pub_topic))
 
@@ -263,9 +264,15 @@ class DepthaiCamera():
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
 
             # Publish the detected label
-            self.pub_label.publish(label)
-            rospy.sleep(rospy.Duration(2))
+            if self.person_detected == False:
+                self.pub_label.publish(label)
+                self.person_detected = True
 
+            elif self.backpack_detected == False:
+                self.pub_label.publish(label)
+                self.backpack_detected = True
+            else:
+                continue
         return overlay
 
     # Start defining a pipeline
