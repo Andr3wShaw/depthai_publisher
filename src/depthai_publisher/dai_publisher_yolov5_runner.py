@@ -263,16 +263,18 @@ class DepthaiCamera():
             cv2.putText(overlay, f"{int(detection.confidence * 100)}%", (bbox[0] + 10, bbox[1] + 40), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
 
-            # Publish the detected label
-            if self.person_detected == False:
+            # Publish the detected label if not already detected
+            if label == "Person": #and not self.person_detected:
                 self.pub_label.publish(label)
                 self.person_detected = True
-
-            elif self.backpack_detected == False:
+            elif label == "Backpack": #and not self.backpack_detected:
                 self.pub_label.publish(label)
                 self.backpack_detected = True
-            else:
+
+            # If both person and backpack detected, continue to the next detection
+            if self.person_detected and self.backpack_detected:
                 continue
+
         return overlay
 
     # Start defining a pipeline
