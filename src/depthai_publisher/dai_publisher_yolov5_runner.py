@@ -18,6 +18,7 @@ import numpy as np
 import depthai as dai
 import rospy    
 from sensor_msgs.msg import CompressedImage, Image, CameraInfo
+from geometry_msgs.msg import PoseStamped
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String
 
@@ -86,6 +87,8 @@ class DepthaiCamera():
         self.timer = rospy.Timer(rospy.Duration(1.0 / 10), self.publish_camera_info, oneshot=False)
 
         self.pub_label = rospy.Publisher('object_detection', String, queue_size=10)
+        self.sub_alt1 = rospy.Subscriber("/uavasr/pose", PoseStamped, self.alt_check)
+        self.sub_alt2 = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.alt_check)
         self.person_detected = False
         self.backpack_detected = False
 
@@ -95,6 +98,12 @@ class DepthaiCamera():
 
         rospy.on_shutdown(lambda: self.shutdown())
 
+    def alt_check(self, data):
+        z = data.pose.position.z
+        if z < 0.1:
+            self.person_detected = False
+            self.backpack_detected = False
+    
     def publish_camera_info(self, timer=None):
         # Create a publisher for the CameraInfo topic
 
@@ -146,7 +155,7 @@ class DepthaiCamera():
         print(metadata)
         nnPath = str((Path(__file__).parent / Path(modelPathName)).resolve().absolute())
         print(nnPath)
-
+        
         pipeline = self.createPipeline(nnPath)
 
         with dai.Device() as device:
@@ -259,15 +268,17 @@ class DepthaiCamera():
         for detection in detections:
             bbox = self.frameNorm(overlay, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
             label = labels[detection.label]
+            confidence = detection.confidence * 100
             cv2.putText(overlay, labels[detection.label], (bbox[0] + 10, bbox[1] + 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.putText(overlay, f"{int(detection.confidence * 100)}%", (bbox[0] + 10, bbox[1] + 40), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
 
             # Publish the detected label if not already detected
-            if label == "Person" and self.person_detected == False:
+            if label == "Person" and self.person_detected == False and confidence > 80:
                 self.pub_label.publish(label)
                 self.person_detected = True
-            elif label == "Backpack" and self.backpack_detected == False:
+            
+            if label == "Backpack" and self.backpack_detected == False and confidence > 80:
                 self.pub_label.publish(label)
                 self.backpack_detected = True
 
