@@ -36,7 +36,7 @@ class ArucoDetector():
             rospy.logerr(e)
 
         aruco = self.find_aruco(frame)
-        self.publish_to_ros(aruco)
+        # self.publish_to_ros(aruco)
 
         # cv2.imshow('aruco', aruco)
         # cv2.waitKey(1)
@@ -66,21 +66,21 @@ class ArucoDetector():
 
                 id_msg = Int32()
                 id_msg.data = marker_ID
-                self.aruco_id_pub.publish(id_msg)
-
+                self.aruco_id_pub.publish(id_msg.data)
+                rospy.sleep(0.5)
                 
                 cv2.putText(frame, str(
                     marker_ID), (top_left[0], top_right[1] - 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
         return frame
 
-    def publish_to_ros(self, frame):
-        msg_out = CompressedImage()
-        msg_out.header.stamp = rospy.Time.now()
-        msg_out.format = "jpeg"
-        msg_out.data = np.array(cv2.imencode('.jpg', frame)[1]).tostring()
+    # def publish_to_ros(self, frame):
+    #     msg_out = CompressedImage()
+    #     msg_out.header.stamp = rospy.Time.now()
+    #     msg_out.format = "jpeg"
+    #     msg_out.data = np.array(cv2.imencode('.jpg', frame)[1]).tostring()
 
-        self.aruco_pub.publish(msg_out)
+    #     self.aruco_pub.publish(msg_out)
 
 
 def main():
