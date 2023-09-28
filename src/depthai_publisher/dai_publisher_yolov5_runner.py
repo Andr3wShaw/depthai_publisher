@@ -264,16 +264,16 @@ class DepthaiCamera():
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
 
             # Publish the detected label if not already detected
-            if label == "Person": #and not self.person_detected:
+            if label == "Person" and self.person_detected == False:
                 self.pub_label.publish(label)
                 self.person_detected = True
-            elif label == "Backpack": #and not self.backpack_detected:
+            elif label == "Backpack" and self.backpack_detected == False:
                 self.pub_label.publish(label)
                 self.backpack_detected = True
 
             # If both person and backpack detected, continue to the next detection
-            if self.person_detected and self.backpack_detected:
-                continue
+            # if self.person_detected  and self.backpack_detected:
+            #     continue
 
         return overlay
 
