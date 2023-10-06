@@ -18,7 +18,7 @@ import numpy as np
 import depthai as dai
 import rospy    
 from sensor_msgs.msg import CompressedImage, Image, CameraInfo
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String
 
@@ -89,6 +89,7 @@ class DepthaiCamera():
         self.pub_label = rospy.Publisher('object_detection', String, queue_size=10)
         self.sub_alt1 = rospy.Subscriber("/uavasr/pose", PoseStamped, self.alt_check)
         self.sub_alt2 = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.alt_check)
+        self.pub_object_pose = rospy.Publisher('object_pose', Point, queue_size=10)
         self.person_detected = False
         self.backpack_detected = False
 
@@ -273,12 +274,24 @@ class DepthaiCamera():
             cv2.putText(overlay, f"{int(detection.confidence * 100)}%", (bbox[0] + 10, bbox[1] + 40), cv2.FONT_HERSHEY_TRIPLEX, 0.5, 255)
             cv2.rectangle(overlay, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
 
+            center_x = (bbox[0] + bbox[2]) // 2
+            center_y = (bbox[1] + bbox[3]) // 2
+
+            # Draw a small circle at the center point
+            cv2.circle(overlay, (center_x, center_y), 3, (0, 0, 255), -1)  # Red circle with a radius of 3 pixels
+            # rospy.loginfo(f"Center Coordinates: ({center_x}, {center_y})")
+
+            center_point = Point()
+            center_point.x = center_x
+            center_point.y = center_y
+
             # Publish the detected label if not already detected
-            if label == "Person" and self.person_detected == False and confidence > 80:
+            if label == "Person" and self.person_detected == False and confidence > 65:
+                self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.person_detected = True
-            
-            if label == "Backpack" and self.backpack_detected == False and confidence > 80:
+            if label == "Backpack" and self.backpack_detected == False and confidence > 65:
+                self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.backpack_detected = True
 
@@ -319,7 +332,7 @@ class DepthaiCamera():
             cam.setInterleaved(False)
             cam.preview.link(detection_nn.input)
             cam.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-            cam.setFps(40)
+            cam.setFps(10)
             print("Using RGB camera...")
         elif cam_source == 'left':
             cam = pipeline.create(dai.node.MonoCamera)
