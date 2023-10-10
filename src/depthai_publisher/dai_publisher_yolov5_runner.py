@@ -20,7 +20,7 @@ import rospy
 from sensor_msgs.msg import CompressedImage, Image, CameraInfo
 from geometry_msgs.msg import PoseStamped, Point
 from cv_bridge import CvBridge, CvBridgeError
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 
 
 ############################### ############################### Parameters ###############################
@@ -89,9 +89,13 @@ class DepthaiCamera():
         self.pub_label = rospy.Publisher('object_detection', String, queue_size=10)
         self.sub_alt1 = rospy.Subscriber("/uavasr/pose", PoseStamped, self.alt_check)
         self.sub_alt2 = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.alt_check)
+
+        self.waypoint_counter_sub = rospy.Subscriber("/waypoint_counter", Int32, self.update_counter)
+
         self.pub_object_pose = rospy.Publisher('object_pose', Point, queue_size=10)
         self.person_detected = False
         self.backpack_detected = False
+        self.waypoint_counter = 0
 
         rospy.loginfo("Publishing images to rostopic: {}".format(self.pub_topic))
 
@@ -105,6 +109,12 @@ class DepthaiCamera():
             self.person_detected = False
             self.backpack_detected = False
     
+    def update_counter(self, msg_in):
+        self.waypoint_counter = msg_in.data
+        rospy.loginfo(msg_in.data)
+        print(f'{msg_in.data}')
+
+
     def publish_camera_info(self, timer=None):
         # Create a publisher for the CameraInfo topic
 
@@ -286,11 +296,12 @@ class DepthaiCamera():
             center_point.y = center_y
 
             # Publish the detected label if not already detected
-            if label == "Person" and self.person_detected == False and confidence > 65:
+            # if self.waypoint_counter > 1:
+            if label == "Person" and self.person_detected == False and confidence > 70:
                 self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.person_detected = True
-            if label == "Backpack" and self.backpack_detected == False and confidence > 65:
+            if label == "Backpack" and self.backpack_detected == False and confidence > 70:
                 self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.backpack_detected = True
