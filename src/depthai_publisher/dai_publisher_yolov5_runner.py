@@ -296,12 +296,11 @@ class DepthaiCamera():
             center_point.y = center_y
 
             # Publish the detected label if not already detected
-            # if self.waypoint_counter > 1:
-            if label == "Person" and self.person_detected == False and confidence > 70:
+            if label == "Person" and self.person_detected == False and confidence > 80 and self.waypoint_counter > 0:
                 self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.person_detected = True
-            if label == "Backpack" and self.backpack_detected == False and confidence > 70:
+            if label == "Backpack" and self.backpack_detected == False and confidence > 80 and self.waypoint_counter > 0:
                 self.pub_object_pose.publish(center_point)
                 self.pub_label.publish(label)
                 self.backpack_detected = True

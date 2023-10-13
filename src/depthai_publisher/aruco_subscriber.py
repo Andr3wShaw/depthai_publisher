@@ -52,39 +52,6 @@ class ArucoDetector():
         # cv2.imshow('aruco', aruco)
         # cv2.waitKey(1)
 
-    def find_aruco(self, frame):
-        (corners, ids, _) = cv2.aruco.detectMarkers(
-            frame, self.aruco_dict, parameters=self.aruco_params)
-
-        if len(corners) > 0:
-            ids = ids.flatten()
-
-            for (marker_corner, marker_ID) in zip(corners, ids):
-                corners = marker_corner.reshape((4, 2))
-                (top_left, top_right, bottom_right, bottom_left) = corners
-
-                top_right = (int(top_right[0]), int(top_right[1]))
-                bottom_right = (int(bottom_right[0]), int(bottom_right[1]))
-                bottom_left = (int(bottom_left[0]), int(bottom_left[1]))
-                top_left = (int(top_left[0]), int(top_left[1]))
-
-                cv2.line(frame, top_left, top_right, (0, 255, 0), 2)
-                cv2.line(frame, top_right, bottom_right, (0, 255, 0), 2)
-                cv2.line(frame, bottom_right, bottom_left, (0, 255, 0), 2)
-                cv2.line(frame, bottom_left, top_left, (0, 255, 0), 2)
-
-                rospy.loginfo("Aruco detected, ID: {}".format(marker_ID))
-
-                id_msg = Int32()
-                id_msg.data = marker_ID
-                self.aruco_id_pub.publish(id_msg.data)
-                rospy.sleep(0.5)
-                
-                cv2.putText(frame, str(
-                    marker_ID), (top_left[0], top_right[1] - 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
-
-        return frame
-
 
     def pose_estimation(self, frame):
         (corners, ids, _) = cv2.aruco.detectMarkers(
@@ -107,7 +74,7 @@ class ArucoDetector():
                 cv2.line(frame, bottom_left, top_left, (0, 255, 0), 2)
                 
                 cv2.putText(frame, str(
-                    marker_ID), (top_left[0], top_right[1] - 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
+                    marker_ID), (top_left[0], top_right[1] - 15), cv2.FONT_HERSHEY_COMPLEX, 0.2, (0, 255, 0), 2)
 
                 rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(marker_corner, 0.02, self.calibration_matrix,
                                                                        self.distortion_coefficients)
@@ -125,8 +92,13 @@ class ArucoDetector():
                 cv2.line(frame, tuple(axis_points[0].ravel()), tuple(axis_points[2].ravel()), (0, 255, 0), 2)  # Y-axis (green)
                 cv2.line(frame, tuple(axis_points[0].ravel()), tuple(axis_points[3].ravel()), (255, 0, 0), 2)  # Z-axis (blue)
                 
-                rospy.loginfo(axis_points[0])
+                rospy.loginfo(axis_points[0][0])
                 rospy.loginfo("Aruco detected, ID: {}".format(marker_ID))
+
+                center_point = Point()
+                center_point.x = axis_points[0][0][0]
+                center_point.y = axis_points[0][0][1]
+                self.aruco_pose_pub.publish(center_point)
 
                 id_msg = Int32()
                 id_msg.data = marker_ID
